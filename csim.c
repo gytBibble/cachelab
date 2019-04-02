@@ -143,18 +143,18 @@ void accessData(mem_addr_t addr)
     if(verbosity)printf("eviction  ");
     eviction_count++;
     //find the max of lru
-    unsigned long long int max_lur=0;
-    int inedx_max_lur=0;
+    unsigned long long int max_lru=0;
+    int inedx_max_lru=0;
     for(i=0; i<E; i++){
-        if(max_lur<cache_set[i].lur){
-            max_lur=cache_set[i].lur;
-            inedx_max_lur=i;
+        if(max_lru<cache_set[i].lru){
+            max_lru=cache_set[i].lru;
+            inedx_max_lru=i;
         }
     }
-    cache_set[inedx_max_lur].valid=1;
-    cache_set[inedx_max_lur].tag=tag;
+    cache_set[inedx_max_lru].valid=1;
+    cache_set[inedx_max_lru].tag=tag;
     //update the value of lru
-    cache_set[inedx_max_lur].lru=0;
+    cache_set[inedx_max_lru].lru=0;
     for(int j=0; j<E; j++)
         if(cache_set[j].valid)
             cache_set[j].lru++;
