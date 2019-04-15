@@ -98,6 +98,13 @@ void freeCache()
     free(cache);
 }
 
+void update_lru(void){
+    for(int i=0;i<S;i++){
+	    for (int j=0; j<E; j++){
+	        if(cache[i][j].valid == 1)cache[i][j].lru++;
+	    }
+    }
+}
 
 /* 
  * accessData - Access data at memory address addr.
@@ -108,21 +115,18 @@ void freeCache()
 void accessData(mem_addr_t addr)
 {
     int i;
-    unsigned long long int eviction_lru = ULONG_MAX;
-    unsigned int eviction_line = 0;
+    unsigned long long int eviction_lru = 0;
+    int eviction_line = 0;
     mem_addr_t set_index = (addr >> b) & set_index_mask;
     mem_addr_t tag = addr >> (s+b);
 
     cache_set_t cache_set = cache[set_index];
     for(i=0; i<E; i++){
-        if(cache_set[i].valid && cache_set[i].tag == tag){
+        if(cache_set[i].valid == 1 && cache_set[i].tag == tag){
             if(verbosity)printf("hit  ");
             hit_count++;
             //update the value of lru
             cache_set[i].lru=0;
-            for(int j=0; j<E; j++)
-                if(cache_set[j].valid)
-                    cache_set[j].lru++;
             return;
         }
     }
@@ -134,31 +138,23 @@ void accessData(mem_addr_t addr)
             cache_set[i].tag=tag;
             //update the value of lru
             cache_set[i].lru=0;
-            for(int j=0; j<E; j++)
-                if(cache_set[j].valid)
-                    cache_set[j].lru++;
             return;
         }
     }
     if(verbosity)printf("eviction  ");
     eviction_count++;
     //find the max of lru
-    unsigned long long int max_lru=0;
-    int inedx_max_lru=0;
     for(i=0; i<E; i++){
-        if(max_lru<cache_set[i].lru){
-            max_lru=cache_set[i].lru;
-            inedx_max_lru=i;
+        if(eviction_lru<cache_set[i].lru){
+            eviction_lru=cache_set[i].lru;
+            eviction_line=i;
         }
     }
-    cache_set[inedx_max_lru].valid=1;
-    cache_set[inedx_max_lru].tag=tag;
+    cache_set[eviction_line].valid=1;
+    cache_set[eviction_line].tag=tag;
     //update the value of lru
-    cache_set[inedx_max_lru].lru=0;
-    for(int j=0; j<E; j++)
-        if(cache_set[j].valid)
-            cache_set[j].lru++;
-    //return;
+    cache_set[eviction_line].lru=0;
+    return;
 }
 
 
@@ -167,26 +163,25 @@ void accessData(mem_addr_t addr)
  */
 void replayTrace(char* trace_fn)
 {
-    char buf;
+    char buf[1000];
     mem_addr_t addr=0;
     unsigned int len=0;
     FILE* trace_fp = fopen(trace_fn, "r");
-    while(fscanf(trace_fp," %c %llu %u",&buf,&addr,&len)>0){
-		switch(buf){
+    char type;
+    while(fgets(buf,1000,trace_fp)){
+                
+                sscanf(buf," %c %llx %u",&type,&addr,&len);
+		switch(type){
 			case 'L':
 				accessData(addr);
 				break;
 			case 'M':
 				accessData(addr);
-                accessData(addr);
 			case 'S':
 				accessData(addr);
 				break;
-            case 'I':
-                break;
-            default:
-                break;
 		}
+		update_lru();	
     }
     fclose(trace_fp);
 }
